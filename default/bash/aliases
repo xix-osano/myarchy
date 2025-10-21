@@ -19,6 +19,7 @@ open() {
 }
 
 # Directories
+alias home='cd ~'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'

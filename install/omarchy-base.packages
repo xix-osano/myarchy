@@ -17,6 +17,7 @@ cups-pdf
 docker
 docker-buildx
 docker-compose
+dosfstools
 dust
 elephant
 elephant-bluetooth
@@ -32,6 +33,7 @@ elephant-todo
 elephant-unicode
 elephant-websearch
 evince
+exfatprogs
 eza
 fastfetch
 fcitx5
@@ -88,6 +90,7 @@ noto-fonts-cjk
 noto-fonts-emoji
 noto-fonts-extra
 nss-mdns
+ntfs-3g
 nvim
 obs-studio
 obsidian
@@ -121,6 +124,7 @@ ttf-ia-writer
 ttf-jetbrains-mono-nerd
 typora
 tzupdate
+udisks2
 ufw
 ufw-docker
 unzip
