@@ -6,8 +6,8 @@ sudo systemctl disable systemd-networkd
 sudo systemctl mask systemd-networkd
 
 # Prevent systemd-networkd-wait-online timeout on boot
-sudo systemctl disable systemd-networkd-wait-online.service
-sudo systemctl mask systemd-networkd-wait-online.service
+sudo systemctl disable NetworkManager-wait-online.service
+sudo systemctl mask NetworkManager-wait-online.service
 
 # Ensure network manager is enabled
 sudo systemctl enable --now NetworkManager
