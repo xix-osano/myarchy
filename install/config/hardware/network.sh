@@ -18,10 +18,10 @@ sudo systemctl mask NetworkManager-wait-online.service
 
 # ---------- systemd-resolved setup ----------
 if ! systemctl is-active --quiet systemd-resolved; then
-  log "Enabling systemd-resolved…"
+  echo "Enabling systemd-resolved…"
   sudo systemctl enable --now systemd-resolved
 else
-  log "systemd-resolved already active."
+  echo "systemd-resolved already active."
 fi
 
 if [[ ! "$(readlink /etc/resolv.conf 2>/dev/null)" =~ resolve ]]; then
