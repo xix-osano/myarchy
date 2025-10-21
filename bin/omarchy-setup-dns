@@ -66,6 +66,6 @@ fi
 
 echo "DNS updated successfully for connection: $active_conn"
 sudo systemctl restart NetworkManager
-
+sleep 2
 echo "Current DNS settings:"
 nmcli dev show | grep -E 'IP4.DNS|IP6.DNS'
