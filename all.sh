@@ -24,8 +24,6 @@ gum style --border normal --margin "1 2" --padding "1 3" --border-foreground 212
 
 gum confirm "Proceed with these settings?" || exit 1
 
-clear
-
 #-------------------------------------------------------------------------------
 # 1. Define Omarchy locations
 #-------------------------------------------------------------------------------

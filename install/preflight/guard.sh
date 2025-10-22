@@ -41,3 +41,5 @@ fi
 
 # Cleared all guards
 echo "Guards: OK"
+
+clear
