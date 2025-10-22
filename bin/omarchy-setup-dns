@@ -6,66 +6,102 @@ else
   dns=$1
 fi
 
-# Detect active connection name
-active_conn=$(nmcli -t -f NAME connection show --active | head -n 1)
-
-if [[ -z "$active_conn" ]]; then
-  echo "No active NetworkManager connection found!"
-  exit 1
-fi
-
 case "$dns" in
 Cloudflare)
-  echo "Switching to Cloudflare DNS..."
-  sudo nmcli connection modify "$active_conn" ipv4.ignore-auto-dns yes
-  sudo nmcli connection modify "$active_conn" ipv6.ignore-auto-dns yes
-  sudo nmcli connection modify "$active_conn" ipv4.dns "1.1.1.1 1.0.0.1"
-  sudo nmcli connection modify "$active_conn" ipv6.dns "2606:4700:4700::1111 2606:4700:4700::1001"
-  sudo nmcli connection modify "$active_conn" ipv4.dns-search ""
-  sudo nmcli connection up "$active_conn"
+  sudo tee /etc/systemd/resolved.conf >/dev/null <<'EOF'
+[Resolve]
+DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com
+FallbackDNS=9.9.9.9 149.112.112.112
+DNSOverTLS=opportunistic
+EOF
+  
+  # Ensure network interfaces don't override our DNS settings
+  for file in /etc/systemd/network/*.network; do
+    [[ -f "$file" ]] || continue
+    if ! grep -q "^\[DHCPv4\]" "$file"; then continue; fi
+    
+    # Add UseDNS=no to DHCPv4 section if not present
+    if ! sed -n '/^\[DHCPv4\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
+      sudo sed -i '/^\[DHCPv4\]/a UseDNS=no' "$file"
+    fi
+    
+    # Add UseDNS=no to IPv6AcceptRA section if present
+    if grep -q "^\[IPv6AcceptRA\]" "$file" && ! sed -n '/^\[IPv6AcceptRA\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
+      sudo sed -i '/^\[IPv6AcceptRA\]/a UseDNS=no' "$file"
+    fi
+  done
+  
+  sudo systemctl restart systemd-networkd systemd-resolved
   ;;
 
 Quad9)
-  # Quad9 DNS with malware blocking (9.9.9.9) and secure backups
-  sudo nmcli connection modify "$active_conn" ipv4.ignore-auto-dns yes
-  sudo nmcli connection modify "$active_conn" ipv6.ignore-auto-dns yes
-  sudo nmcli connection modify "$active_conn" ipv4.dns "9.9.9.9 149.112.112.112"
-  sudo nmcli connection modify "$active_conn" ipv6.dns "2620:fe::fe 2620:fe::9"
-  sudo nmcli connection up "$active_conn"
-;;
+  sudo tee /etc/systemd/resolved.conf >/dev/null <<'EOF'
+[Resolve]
+DNS=9.9.9.9#dns.quad9.net 149.112.112.112#dns.quad9.net
+FallbackDNS=1.1.1.1#cloudflare-dns.com 8.8.8.8#dns.google
+DNSOverTLS=opportunistic
+EOF
+
+  for file in /etc/systemd/network/*.network; do
+    [[ -f "$file" ]] || continue
+    if ! grep -q "^\[DHCPv4\]" "$file"; then continue; fi
+
+    if ! sed -n '/^\[DHCPv4\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
+      sudo sed -i '/^\[DHCPv4\]/a UseDNS=no' "$file"
+    fi
+
+    if grep -q "^\[IPv6AcceptRA\]" "$file" && ! sed -n '/^\[IPv6AcceptRA\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
+      sudo sed -i '/^\[IPv6AcceptRA\]/a UseDNS=no' "$file"
+    fi
+  done
+
+  sudo systemctl restart systemd-networkd systemd-resolved
+  ;;
 
 DHCP)
-  echo "Switching to DHCP-provided DNS..."
-  sudo nmcli connection modify "$active_conn" ipv4.ignore-auto-dns no
-  sudo nmcli connection modify "$active_conn" ipv6.ignore-auto-dns no
-  sudo nmcli connection modify "$active_conn" ipv4.dns ""
-  sudo nmcli connection modify "$active_conn" ipv6.dns ""
-  sudo nmcli connection up "$active_conn"
+  sudo tee /etc/systemd/resolved.conf >/dev/null <<'EOF'
+[Resolve]
+DNSOverTLS=no
+EOF
+  
+  # Allow network interfaces to use DHCP DNS
+  for file in /etc/systemd/network/*.network; do
+    [[ -f "$file" ]] || continue
+    sudo sed -i '/^UseDNS=no/d' "$file"
+  done
+  
+  sudo systemctl restart systemd-networkd systemd-resolved
   ;;
 
 Custom)
-  dns_servers=$(gum input --placeholder "Enter DNS servers (space-separated)")
-  #echo "Enter your DNS servers (space-separated, e.g. '192.168.1.1 1.1.1.1'):"
-  #read -r dns_servers
+  echo "Enter your DNS servers (space-separated, e.g. '192.168.1.1 1.1.1.1'):"
+  read -r dns_servers
 
   if [[ -z "$dns_servers" ]]; then
     echo "Error: No DNS servers provided."
     exit 1
   fi
 
-  sudo nmcli connection modify "$active_conn" ipv4.ignore-auto-dns yes
-  sudo nmcli connection modify "$active_conn" ipv4.dns "$dns_servers"
-  sudo nmcli connection up "$active_conn"
+  sudo tee /etc/systemd/resolved.conf >/dev/null <<EOF
+[Resolve]
+DNS=$dns_servers
+FallbackDNS=9.9.9.9 149.112.112.112
+EOF
+  
+  # Ensure network interfaces don't override our DNS settings
+  for file in /etc/systemd/network/*.network; do
+    [[ -f "$file" ]] || continue
+    if ! grep -q "^\[DHCPv4\]" "$file"; then continue; fi
+    
+    if ! sed -n '/^\[DHCPv4\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
+      sudo sed -i '/^\[DHCPv4\]/a UseDNS=no' "$file"
+    fi
+    
+    if grep -q "^\[IPv6AcceptRA\]" "$file" && ! sed -n '/^\[IPv6AcceptRA\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
+      sudo sed -i '/^\[IPv6AcceptRA\]/a UseDNS=no' "$file"
+    fi
+  done
+  
+  sudo systemctl restart systemd-networkd systemd-resolved
   ;;
 esac
-
-# Optional: restart systemd-resolved if in use
-if systemctl is-active --quiet systemd-resolved; then
-  sudo systemctl restart systemd-resolved
-fi
-
-echo "DNS updated successfully for connection: $active_conn"
-sudo systemctl restart NetworkManager
-sleep 2
-echo "Current DNS settings:"
-nmcli dev show | grep -E 'IP4.DNS|IP6.DNS'
