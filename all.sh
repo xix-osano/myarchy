@@ -7,7 +7,10 @@ set -eEo pipefail
 # 0. Prompt for Git user info
 #-------------------------------------------------------------------------------
 
-command -v gum >/dev/null 2>&1 || sudo pacman -S --noconfirm gum
+# Ensure we have gum available
+if ! command -v gum &>/dev/null; then
+  sudo pacman -S --needed --noconfirm gum
+fi
 
 # Prompt for Git identity
 OMARCHY_USER_NAME=$(gum input --prompt "  Enter your Git username: " --placeholder "Your name")
@@ -20,6 +23,8 @@ gum style --border normal --margin "1 2" --padding "1 3" --border-foreground 212
   "\n    Email: $OMARCHY_USER_EMAIL"
 
 gum confirm "Proceed with these settings?" || exit 1
+
+clear
 
 #-------------------------------------------------------------------------------
 # 1. Define Omarchy locations
