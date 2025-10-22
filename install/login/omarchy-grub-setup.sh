@@ -47,7 +47,7 @@ EOF
 
 # install boot loader
 if $EFI; then
-  sudo grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB --recheck
+  sudo grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB --modules="tpm cryptodisk luks" --disable-shim-lock --recheck
 else
   DISK=$(lsblk -no pkname "$(findmnt -n -o SOURCE /)")
   sudo grub-install --target=i386-pc "/dev/$DISK"
