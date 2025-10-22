@@ -10,11 +10,27 @@ git config --global alias.st status
 git config --global pull.rebase true
 git config --global init.defaultBranch main
 
-# Set identification from install inputs
-if [[ -n "${OMARCHY_USER_NAME//[[:space:]]/}" ]]; then
-  git config --global user.name "$OMARCHY_USER_NAME"
+# Prompt for Git username and email using gum (if not provided)
+if [[ -z "${OMARCHY_USER_NAME//[[:space:]]/}" ]]; then
+  OMARCHY_USER_NAME=$(gum input --placeholder "Your Git username" --prompt "  Username: ")
 fi
 
-if [[ -n "${OMARCHY_USER_EMAIL//[[:space:]]/}" ]]; then
-  git config --global user.email "$OMARCHY_USER_EMAIL"
+if [[ -z "${OMARCHY_USER_EMAIL//[[:space:]]/}" ]]; then
+  OMARCHY_USER_EMAIL=$(gum input --placeholder "you@example.com" --prompt "  Email: ")
 fi
+
+# Confirm with a styled gum display
+gum style --border normal --margin "1 2" --padding "1 3" --border-foreground 212 \
+  "Configuring Git identity:" \
+  "\n    Name : $OMARCHY_USER_NAME" \
+  "\n    Email: $OMARCHY_USER_EMAIL"
+
+# Set Git identity
+git config --global user.name "$OMARCHY_USER_NAME"
+git config --global user.email "$OMARCHY_USER_EMAIL"
+
+gum confirm "Save these settings globally?" && {
+  echo -e "\e[32mGit configured successfully.\e[0m"
+} || {
+  echo -e "\e[33mAborted Git configuration.\e[0m"
+}
