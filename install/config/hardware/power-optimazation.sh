@@ -59,6 +59,10 @@ SATA_LINKPWR_ON_BAT=min_power
 RADEON_DPM_PERF_LEVEL_ON_AC=auto
 RADEON_DPM_PERF_LEVEL_ON_BAT=low
 
+# Dynamic Power Management states
+RADEON_DPM_STATE_ON_AC=performance
+RADEON_DPM_STATE_ON_BAT=battery
+
 # WiFi powersave
 WIFI_PWR_ON_AC=off
 WIFI_PWR_ON_BAT=on
@@ -82,6 +86,7 @@ echo "==> TLP status summary:"
 tlp-stat -s
 sudo tlp-stat -b
 
+sudo powertop --auto-tune
 echo "==> Creating Powertop auto-tune systemd service..."
 sudo bash -c 'cat > /etc/systemd/system/powertop.service <<EOF
 [Unit]
